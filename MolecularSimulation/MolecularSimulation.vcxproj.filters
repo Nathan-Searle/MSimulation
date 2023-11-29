@@ -15,15 +15,15 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="MolecularSimulation.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="VelocityVerlet.cpp">
+    <ClCompile Include="MDSimulator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="VelocityVerlet.hpp">
+    <ClInclude Include="MDSimulator.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
