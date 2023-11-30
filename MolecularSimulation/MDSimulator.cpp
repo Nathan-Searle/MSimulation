@@ -1,15 +1,13 @@
 #include "MDSimulator.hpp"
 
-MDSimulator::MDSimulator(int numberOfParticles, double particleMass, double lengthOfCube, double temperatureIn, double totalTime, int iterationCount) :
-	positionArr(std::vector<double[3]>(numberOfParticles)),
-	velocityArr(std::vector<double[3]>(numberOfParticles)),
+MDSimulator::MDSimulator(double particleMass, double lengthOfCube, double temperatureIn, double maxTime) :
 	mass(particleMass),
 	length(lengthOfCube),
 	temperature(temperatureIn),
-	maxTime(totalTime),
-	totalIterations(iterationCount),
 	currentTime(0),
-	timeDelta(maxTime/totalIterations)
+	timeDelta(maxTime/totalIterations),
+	positionArr(std::array<std::array<std::array<double, 3>, nParticles>, totalIterations>()),
+	velocityArr(std::array<std::array<std::array<double, 3>, nParticles>, totalIterations>())
 {
 }
 

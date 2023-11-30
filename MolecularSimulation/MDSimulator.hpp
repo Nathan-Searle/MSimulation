@@ -1,23 +1,26 @@
 #ifndef MDSIMULATOR_HPP
 #define MDSIMULATOR_HPP
-#include <vector>
+#include <array>
 
 class MDSimulator
 {
 public:
-	MDSimulator(int, double, double, double, double, int);
+	MDSimulator(double, double, double, double);
 	void solve();
 
 private:
+	// This is the major sin, but works for now (hardcoded)
+	const static int totalIterations = 100;
+	const static int nParticles = 10;
+
 	double currentTime;
-	std::vector<double[3]> positionArr;
-	std::vector<double[3]> velocityArr;
-	int totalIterations;
 	double length;
 	double temperature;
 	double maxTime;
 	double timeDelta;
 	double mass;
+	std::array<std::array<std::array<double, 3>, nParticles>, totalIterations> positionArr;
+	std::array<std::array<std::array<double, 3>, nParticles>, totalIterations> velocityArr;
 
 	void velocityVerlet();
 	double potentialCalculator(double);

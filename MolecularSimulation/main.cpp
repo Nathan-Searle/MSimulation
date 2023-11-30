@@ -1,10 +1,12 @@
-#include "MDSimulator.hpp"
-#include <vector>
+//#include "MDSimulator.hpp"
+#include <array>
 #include <iostream>
 
 int main()
 {
-    std::vector<double[3]> vec = std::vector<double[3]>(10);
+    // setup number of particles and total number of iterations first, so this thing knows how to initialize memory
+
+    std::array<std::array<std::array<double, 3>, 10>, 100> posTime = std::array<std::array<std::array<double, 3>, 10>, 100>();
 
     int i = 0;
 
