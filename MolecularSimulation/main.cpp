@@ -1,15 +1,24 @@
-//#include "MDSimulator.hpp"
+#include "MDSimulator.hpp"
+#include "MCSimulator.hpp"
+#include "SimulationSettings.hpp"
 #include <array>
 #include <iostream>
 
 int main()
 {
-    // setup number of particles and total number of iterations first, so this thing knows how to initialize memory
+    //// setup number of particles and total number of iterations first, so this thing knows how to initialize memory
 
-    std::array<std::array<std::array<double, 3>, 10>, 100> posTime = std::array<std::array<std::array<double, 3>, 10>, 100>();
+    //std::array<std::array<std::array<double, 3>, 10>, 100> posTime = std::array<std::array<std::array<double, 3>, 10>, 100>();
 
-    int i = 0;
+    //int i = 0;
 
-    //MDSimulator dynamicSimulator = MDSimulator(3, 15, 3.2, 273.15, 100, 1000);
-    //dynamicSimulator.solve();
+    MDSimulator dynamicSimulator = MDSimulator(39.948, 10, 50, SimulationSettings::totalIterations * 100); // amu, angstrom, K, angstrom * amu^-1/2 * erg^1/2
+    dynamicSimulator.solve();
+
+    MCSimulator metroSimulator = MCSimulator(39.948, 10, 1000); // amu, angstrom, number (of iterations allowed)
+    metroSimulator.solve();
+
+    std::cout << (rand() % 100);
+    std::cout << (rand() % 100);
+    std::cout << (rand() % 100);
 }

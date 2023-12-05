@@ -128,10 +128,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MCSimulator.cpp" />
     <ClCompile Include="MDSimulator.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="MCSimulator.hpp" />
     <ClInclude Include="MDSimulator.hpp" />
+    <ClInclude Include="SimulationSettings.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

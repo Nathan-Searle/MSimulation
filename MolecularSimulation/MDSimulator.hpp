@@ -1,6 +1,7 @@
 #ifndef MDSIMULATOR_HPP
 #define MDSIMULATOR_HPP
 #include <array>
+#include "SimulationSettings.hpp"
 
 class MDSimulator
 {
@@ -9,24 +10,23 @@ public:
 	void solve();
 
 private:
-	// This is the major sin, but works for now (hardcoded)
-	const static int totalIterations = 100;
-	const static int nParticles = 10;
-
 	double currentTime;
 	double length;
 	double temperature;
 	double maxTime;
 	double timeDelta;
+	double rcut;
 	double mass;
-	std::array<std::array<std::array<double, 3>, nParticles>, totalIterations> positionArr;
-	std::array<std::array<std::array<double, 3>, nParticles>, totalIterations> velocityArr;
+	std::array<std::array<std::array<double, 3>, SimulationSettings::nParticles>, SimulationSettings::totalIterations> positionArr;
+	std::array<std::array<std::array<double, 3>, SimulationSettings::nParticles>, SimulationSettings::totalIterations> velocityArr;
+	std::array<std::array<std::array<double, 3>, SimulationSettings::nParticles>, SimulationSettings::totalIterations> forceArr;
 
+	void initialize();
 	void velocityVerlet();
 	double potentialCalculator(double);
 	double kineticCalculator(double);
-	// Need a thermometer here?
-	void updatePositionArr();
+	double temperatureCalculator();
+	void thermostat();
 };
 
 #endif
