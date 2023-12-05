@@ -27,6 +27,8 @@ private:
 	double kineticCalculator(double);
 	double temperatureCalculator();
 	void thermostat();
+	std::array<std::array < std::array<double, 3>, SimulationSettings::nParticles>, SimulationSettings::nParticles> findDistances();
+	double forceCalculator(double);
 };
 
 #endif
