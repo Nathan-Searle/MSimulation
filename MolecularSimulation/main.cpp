@@ -12,13 +12,9 @@ int main()
 
     //int i = 0;
 
-    MDSimulator dynamicSimulator = MDSimulator(39.948, 10, 50, SimulationSettings::totalIterations * 100); // amu, angstrom, K, angstrom * amu^-1/2 * erg^1/2
+    MDSimulator dynamicSimulator = MDSimulator(39.948, 1, 50, SimulationSettings::totalIterations * 0.05); // amu, angstrom, K, angstrom * amu^-1/2 * erg^1/2
     dynamicSimulator.solve();
 
-    MCSimulator metroSimulator = MCSimulator(39.948, 10, 1000); // amu, angstrom, number (of iterations allowed)
-    metroSimulator.solve();
-
-    std::cout << (rand() % 100);
-    std::cout << (rand() % 100);
-    std::cout << (rand() % 100);
+    //MCSimulator metroSimulator = MCSimulator(39.948, 10, 1000); // amu, angstrom, number (of iterations allowed)
+    //metroSimulator.solve();
 }

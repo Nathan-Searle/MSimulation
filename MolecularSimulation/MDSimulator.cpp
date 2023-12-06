@@ -1,10 +1,11 @@
 #include "MDSimulator.hpp"
+#include <iostream>
 
 MDSimulator::MDSimulator(double particleMass, double lengthOfCube, double temperatureIn, double maxTime) :
 	mass(particleMass),
 	length(lengthOfCube),
 	temperature(temperatureIn),
-	rcut(lengthOfCube / 2 / 1.5),
+	rcut(lengthOfCube / 2),
 	currentTime(0),
 	timeDelta(maxTime / SimulationSettings::totalIterations),
 	positionArr(std::array<std::array<std::array<double, 3>, SimulationSettings::nParticles>, SimulationSettings::totalIterations>()),
@@ -16,21 +17,33 @@ MDSimulator::MDSimulator(double particleMass, double lengthOfCube, double temper
 void MDSimulator::solve() {
 	initialize();
 
+	//for (int i = 0; i < SimulationSettings::nParticles; i++)
+	//	std::cout << "[" << positionArr[0][i][0] << "," << positionArr[0][i][1] << "," << positionArr[0][i][2] << "]," << std::endl;
+
 	while (currentTime < SimulationSettings::totalIterations - 1) {
 		velocityVerlet();
 
-		thermostat();
+		// thermostat();
 
 		currentTime++;
 	}
 
-	// Print out a bunch of stuff at the end here for properties, etc.
+	for (int j = 0; j < SimulationSettings::totalIterations; j++) {
+		std::cout << "[";
+		for (int i = 0; i < SimulationSettings::nParticles; i++) {
+			std::cout << "[" << positionArr[0][i][0] << "," << positionArr[0][i][1] << "," << positionArr[0][i][2] << "]";
+			if (i <= SimulationSettings::nParticles - 2)
+				std::cout << ",";
+			std::cout << std::endl;
+		}
+		std::cout << "]," << std::endl;
+	}
 }
 
 void MDSimulator::initialize() {
 	double maxDistance = pow((pow(length, 3) / SimulationSettings::nParticles), 1.0 / 3.0);
-	int nIntervals = (int)(length / maxDistance) + 1;
-	double initVelocity = 0;
+	int nIntervals = (int)(length / (maxDistance / 1.1));
+	double initVelocity = sqrt(temperature * 3 * 1.380649E-16 / mass);
 	int particleIndex;
 	for (int i = 0; i < nIntervals; i++) {
 		for (int j = 0; j < nIntervals; j++) {
@@ -52,10 +65,35 @@ void MDSimulator::initialize() {
 				else // z
 					velocityArr[0][particleIndex][2] = initVelocity;
 
-				if (rand() % 100 < 50) // make negative
+				if (rand() % 100 < 50) { // make negative
 					velocityArr[0][particleIndex][0] *= -1;
-				velocityArr[0][particleIndex][1] *= -1;
-				velocityArr[0][particleIndex][2] *= -1;
+					velocityArr[0][particleIndex][1] *= -1;
+					velocityArr[0][particleIndex][2] *= -1;
+				}
+			}
+		}
+	}
+
+	std::array<std::array < std::array<double, 3>, SimulationSettings::nParticles>, SimulationSettings::nParticles> allDistances = findDistances();
+	for (int i = 0; i < SimulationSettings::nParticles; i++) {
+		// Start at 0 force in each dimension
+		forceArr[0][i][0] = 0;
+		forceArr[0][i][1] = 0;
+		forceArr[0][i][2] = 0;
+		std::array < std::array<double, 3>, SimulationSettings::nParticles> distanceArr = allDistances[i];
+		for (int j = 0; j < size(allDistances); j++) {
+			// Find the total distance between each particle
+			double r = sqrt(pow(distanceArr[j][0], 2) + pow(distanceArr[j][1], 2) + pow(distanceArr[j][2], 2));
+			if (r > rcut) {
+				forceArr[0][i][0] += 0;
+				forceArr[0][i][1] += 0;
+				forceArr[0][i][2] += 0;
+			}
+			else {
+				double force = -24 * SimulationSettings::LJEpsilon * (pow(SimulationSettings::LJSigma, 6) / pow(r, 7) - 2 * pow(SimulationSettings::LJSigma, 12) / pow(r, 13));
+				forceArr[0][i][0] += force * distanceArr[j][0];
+				forceArr[0][i][1] += force * distanceArr[j][1];
+				forceArr[0][i][2] += force * distanceArr[j][2];
 			}
 		}
 	}
@@ -66,7 +104,10 @@ void MDSimulator::velocityVerlet() {
 	for (int i = 0; i < SimulationSettings::nParticles; i++) {
 		// For each dimension
 		for (int j = 0; j < 3; j++) {
-			double nextPos = positionArr[currentTime][i][j] + velocityArr[currentTime][i][j] * timeDelta + pow(timeDelta, 2) / 2 * (velocityArr[currentTime][i][j] / mass);
+			double currentPos = positionArr[currentTime][i][j];
+			double secondTerm = velocityArr[currentTime][i][j] * timeDelta;
+			double lastTerm = pow(timeDelta, 2) / 2 * (velocityArr[currentTime][i][j] / mass);
+			double nextPos = currentPos + secondTerm + lastTerm;
 
 			// Enforce periodic boundary condition
 			if (nextPos > length / 2)
@@ -94,10 +135,10 @@ void MDSimulator::velocityVerlet() {
 				forceArr[currentTime + 1][i][2] += 0;
 			}
 			else {
-				double force = forceCalculator(r);
+				double force = -24 * SimulationSettings::LJEpsilon * (pow(SimulationSettings::LJSigma, 6) / pow(r, 7) - 2 * pow(SimulationSettings::LJSigma, 12) / pow(r, 13));
 				forceArr[currentTime + 1][i][0] += force * distanceArr[j][0];
-				forceArr[currentTime + 1][i][0] += force * distanceArr[j][1];
-				forceArr[currentTime + 1][i][0] += force * distanceArr[j][2];
+				forceArr[currentTime + 1][i][1] += force * distanceArr[j][1];
+				forceArr[currentTime + 1][i][2] += force * distanceArr[j][2];
 			}
 		}
 	}
@@ -137,10 +178,6 @@ double MDSimulator::temperatureCalculator() {
 	return sum; // K
 }
 
-double MDSimulator::forceCalculator(double r) {
-	return -24 * SimulationSettings::LJEpsilon * (pow(SimulationSettings::LJSigma, 6) / pow(r, 7) - 2 * pow(SimulationSettings::LJSigma, 12) / pow(r, 13));
-}
-
 std::array<std::array < std::array<double, 3>, SimulationSettings::nParticles>, SimulationSettings::nParticles> MDSimulator::findDistances() {
 
 	std::array<std::array < std::array<double, 3>, SimulationSettings::nParticles>, SimulationSettings::nParticles> allDistances;
@@ -150,8 +187,21 @@ std::array<std::array < std::array<double, 3>, SimulationSettings::nParticles>, 
 			double yDistance = positionArr[currentTime][i][1] - positionArr[currentTime][j][1]; // yi - yj
 			double zDistance = positionArr[currentTime][i][2] - positionArr[currentTime][j][2]; // zi - zj
 
+			// Check periodic boundary conditions for distance calculations
 			if (xDistance < (-length / 2))
 				xDistance += length;
+			else if (xDistance > (length / 2))
+				xDistance -= length;
+
+			if (yDistance < (-length / 2))
+				yDistance += length;
+			else if (yDistance > (length / 2))
+				yDistance -= length;
+
+			if (zDistance < (-length / 2))
+				zDistance += length;
+			else if (zDistance > (length / 2))
+				zDistance -= length;
 
 			allDistances[i][j][0] = xDistance;
 			allDistances[i][j][1] = yDistance;
