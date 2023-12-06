@@ -43,14 +43,14 @@ void MDSimulator::solve() {
 void MDSimulator::initialize() {
 	double maxDistance = pow((pow(length, 3) / SimulationSettings::nParticles), 1.0 / 3.0);
 	int nIntervals = (int)(length / (maxDistance / 1.1));
-	double initVelocity = sqrt(temperature * 3 * 1.380649E-16 / mass);
+	double initVelocity = sqrt(temperature * 3 * 1.380649E-16 / mass); // This is (erg/amu)**(1/2) TODO : Convert units
 	int particleIndex;
 	for (int i = 0; i < nIntervals; i++) {
 		for (int j = 0; j < nIntervals; j++) {
 			for (int k = 0; k < nIntervals; k++) {
 				particleIndex = (int)(j * nIntervals + k + i * nIntervals * nIntervals);
 				if (particleIndex == SimulationSettings::nParticles)
-					return;
+					goto calculateInitialForces;
 				positionArr[0][particleIndex][0] = -length / 2 + maxDistance / 2 + maxDistance * i;
 				positionArr[0][particleIndex][1] = -length / 2 + maxDistance / 2 + maxDistance * j;
 				positionArr[0][particleIndex][2] = -length / 2 + maxDistance / 2 + maxDistance * k;
@@ -74,6 +74,7 @@ void MDSimulator::initialize() {
 		}
 	}
 
+	calculateInitialForces:
 	std::array<std::array < std::array<double, 3>, SimulationSettings::nParticles>, SimulationSettings::nParticles> allDistances = findDistances();
 	for (int i = 0; i < SimulationSettings::nParticles; i++) {
 		// Start at 0 force in each dimension
@@ -126,7 +127,7 @@ void MDSimulator::velocityVerlet() {
 		forceArr[currentTime + 1][i][1] = 0;
 		forceArr[currentTime + 1][i][2] = 0;
 		std::array < std::array<double, 3>, SimulationSettings::nParticles> distanceArr = allDistances[i];
-		for (int j = 0; j < size(allDistances); j++) {
+		for (int j = 0; j < allDistances.size(); j++) {
 			// Find the total distance between each particle
 			double r = sqrt(pow(distanceArr[j][0], 2) + pow(distanceArr[j][1], 2) + pow(distanceArr[j][2], 2));
 			if (r > rcut) {
@@ -207,9 +208,9 @@ std::array<std::array < std::array<double, 3>, SimulationSettings::nParticles>, 
 			allDistances[i][j][1] = yDistance;
 			allDistances[i][j][2] = zDistance;
 
-			allDistances[j][i][0] = xDistance;
-			allDistances[j][i][1] = yDistance;
-			allDistances[j][i][2] = zDistance;
+			allDistances[j][i][0] = -xDistance;
+			allDistances[j][i][1] = -yDistance;
+			allDistances[j][i][2] = -zDistance;
 		}
 	}
 	return allDistances;
