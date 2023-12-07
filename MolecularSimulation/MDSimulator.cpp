@@ -1,5 +1,6 @@
 #include "MDSimulator.hpp"
 #include <iostream>
+#include <fstream>
 
 MDSimulator::MDSimulator(double particleMass, double lengthOfCube, double temperatureIn, double maxTime) :
 	mass(particleMass),
@@ -28,22 +29,28 @@ void MDSimulator::solve() {
 		currentTime++;
 	}
 
+	// Save some results
+	std::ofstream results;
+	results.open("Results.txt");
 	for (int j = 0; j < SimulationSettings::totalIterations; j++) {
-		std::cout << "[";
+		results << "[";
 		for (int i = 0; i < SimulationSettings::nParticles; i++) {
-			std::cout << "[" << positionArr[0][i][0] << "," << positionArr[0][i][1] << "," << positionArr[0][i][2] << "]";
+			results << "[" << positionArr[j][i][0] << "," << positionArr[j][i][1] << "," << positionArr[j][i][2] << "]";
 			if (i <= SimulationSettings::nParticles - 2)
-				std::cout << ",";
-			std::cout << std::endl;
+				results << ",";
 		}
-		std::cout << "]," << std::endl;
+		if (j < SimulationSettings::totalIterations - 1)
+			results << "],";
+		else
+			results << "]";
 	}
+	results.close();	
 }
 
 void MDSimulator::initialize() {
 	double maxDistance = pow((pow(length, 3) / SimulationSettings::nParticles), 1.0 / 3.0);
 	int nIntervals = (int)(length / (maxDistance / 1.1));
-	double initVelocity = sqrt(temperature * 3 * 1.380649E-16 / mass); // This is (erg/amu)**(1/2) TODO : Convert units
+	double initVelocity = sqrt(temperature * 3 * 1.380649E-16 / mass) * 6.022E39/6.022E30; // amu / [time]
 	int particleIndex;
 	for (int i = 0; i < nIntervals; i++) {
 		for (int j = 0; j < nIntervals; j++) {
@@ -56,16 +63,16 @@ void MDSimulator::initialize() {
 				positionArr[0][particleIndex][2] = -length / 2 + maxDistance / 2 + maxDistance * k;
 
 				int coordinate = rand() % 100;
-				if (coordinate < 33) // x
-					velocityArr[0][particleIndex][0] = initVelocity;
+				if (coordinate < 33)
+					velocityArr[0][particleIndex][0] = initVelocity; // x
 
-				else if (coordinate < 66) // y
-					velocityArr[0][particleIndex][1] = initVelocity;
+				else if (coordinate < 66)
+					velocityArr[0][particleIndex][1] = initVelocity; // y
 
-				else // z
-					velocityArr[0][particleIndex][2] = initVelocity;
+				else
+					velocityArr[0][particleIndex][2] = initVelocity; // z
 
-				if (rand() % 100 < 50) { // make negative
+				if (rand() % 100 < 50) { // make negative "randomly"
 					velocityArr[0][particleIndex][0] *= -1;
 					velocityArr[0][particleIndex][1] *= -1;
 					velocityArr[0][particleIndex][2] *= -1;
