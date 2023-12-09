@@ -13,7 +13,6 @@ private:
 	double currentTime;
 	double length;
 	double temperature;
-	double maxTime;
 	double timeDelta;
 	double rcut;
 	double mass;
