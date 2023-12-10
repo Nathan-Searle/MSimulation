@@ -10,20 +10,21 @@ public:
 	void solve();
 
 private:
-	double currentTime;
+	int currentIteration;
+	int totalIteration;
 	double length;
 	double temperature;
 	double timeDelta;
 	double rcut;
 	double mass;
-	std::array<std::array<std::array<double, 3>, SimulationSettings::nParticles>, SimulationSettings::totalIterations> positionArr;
-	std::array<std::array<std::array<double, 3>, SimulationSettings::nParticles>, SimulationSettings::totalIterations> velocityArr;
-	std::array<std::array<std::array<double, 3>, SimulationSettings::nParticles>, SimulationSettings::totalIterations> forceArr;
+	std::array<std::array<std::array<double, 3>, SimulationSettings::nParticles>, 100> positionArr;
+	std::array<std::array<std::array<double, 3>, SimulationSettings::nParticles>, 100> velocityArr;
+	std::array<std::array<std::array<double, 3>, SimulationSettings::nParticles>, 100> forceArr;
 
 	void initialize();
 	void velocityVerlet();
-	double potentialCalculator(double);
-	double kineticCalculator(double);
+	const double potentialCalculator(double);
+	const double kineticCalculator(double);
 	double temperatureCalculator();
 	void thermostat();
 	std::array<std::array < std::array<double, 3>, SimulationSettings::nParticles>, SimulationSettings::nParticles> findDistances();

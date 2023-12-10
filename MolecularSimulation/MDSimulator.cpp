@@ -7,40 +7,74 @@ MDSimulator::MDSimulator(double particleMass, double lengthOfCube, double temper
 	length(lengthOfCube),
 	temperature(temperatureIn),
 	rcut(lengthOfCube / 2),
-	currentTime(0),
+	currentIteration(0),
+	totalIteration(0),
 	timeDelta(maxTime / SimulationSettings::totalIterations),
-	positionArr(std::array<std::array<std::array<double, 3>, SimulationSettings::nParticles>, SimulationSettings::totalIterations>()),
-	velocityArr(std::array<std::array<std::array<double, 3>, SimulationSettings::nParticles>, SimulationSettings::totalIterations>()),
-	forceArr(std::array<std::array<std::array<double, 3>, SimulationSettings::nParticles>, SimulationSettings::totalIterations>())
+	positionArr(std::array<std::array<std::array<double, 3>, SimulationSettings::nParticles>, 100>()),
+	velocityArr(std::array<std::array<std::array<double, 3>, SimulationSettings::nParticles>, 100>()),
+	forceArr(std::array<std::array<std::array<double, 3>, SimulationSettings::nParticles>, 100>())
 {
 }
 
 void MDSimulator::solve() {
 	initialize();
 
-	while (currentTime < SimulationSettings::totalIterations - 1) {
-		velocityVerlet();
-
-		thermostat();
-
-		currentTime++;
-	}
-
-	// Save some results
 	std::ofstream tradjectories;
 	tradjectories.open("trajectories.txt");
-	for (int j = 0; j < SimulationSettings::totalIterations; j++) {
+
+	while (totalIteration < SimulationSettings::totalIterations - 1) {
+		velocityVerlet();
+
+		if (currentIteration % 99 == 98) {
+			// Save some results periodically
+			for (int j = 0; j < currentIteration+1; j++) {
+				tradjectories << "[";
+				for (int i = 0; i < SimulationSettings::nParticles; i++) {
+					tradjectories << "[" << positionArr[j][i][0] << "," << positionArr[j][i][1] << "," << positionArr[j][i][2] << "]";
+					if (i <= SimulationSettings::nParticles - 2)
+						tradjectories << ",";
+				}
+				if (j < positionArr.size())
+					tradjectories << "],";
+			}
+
+			// Reset where things are (save memory)
+			for (int i = 0; i < SimulationSettings::nParticles; i++) {
+				for (int j = 0; j < 3; j++) {
+					positionArr[0][i][j] = positionArr[98][i][j];
+					positionArr[1][i][j] = positionArr[99][i][j];
+
+					velocityArr[0][i][j] = velocityArr[98][i][j];
+					velocityArr[1][i][j] = velocityArr[99][i][j];
+
+					forceArr[0][i][j] = forceArr[98][i][j];
+					forceArr[1][i][j] = forceArr[99][i][j];
+				}
+			}
+
+			currentIteration = -1;
+		}
+
+		currentIteration++;
+		totalIteration++;
+
+		// thermostat();
+	}
+
+	// Save the remaining results
+	for (int j = 0; j < totalIteration % 99 + 1; j++) {
 		tradjectories << "[";
 		for (int i = 0; i < SimulationSettings::nParticles; i++) {
 			tradjectories << "[" << positionArr[j][i][0] << "," << positionArr[j][i][1] << "," << positionArr[j][i][2] << "]";
 			if (i <= SimulationSettings::nParticles - 2)
 				tradjectories << ",";
 		}
-		if (j < SimulationSettings::totalIterations - 1)
+		if (j < positionArr.size() - 1)
 			tradjectories << "],";
 		else
 			tradjectories << "]";
 	}
+	
 	tradjectories.close();
 }
 
@@ -109,15 +143,11 @@ void MDSimulator::velocityVerlet() {
 	for (int i = 0; i < SimulationSettings::nParticles; i++) {
 		// For each dimension
 		for (int j = 0; j < 3; j++) {
-			double currentPos = positionArr[currentTime][i][j];
-			double secondTerm = velocityArr[currentTime][i][j] * timeDelta;
-			double lastTerm = pow(timeDelta, 2) / 2 * (velocityArr[currentTime][i][j] / mass);
-			double nextPos = currentPos + secondTerm + lastTerm;
+			double nextPos = positionArr[currentIteration][i][j] + velocityArr[currentIteration][i][j] * timeDelta + pow(timeDelta, 2) / 2 * (velocityArr[currentIteration][i][j] / mass);
 
 			// Break if something has gone horribly wrong
 			if (abs(nextPos) > length) {
 				std::cout << "We done lost a particle." << std::endl;
-				throw(1);
 			}
 
 			// Enforce periodic boundary condition
@@ -125,7 +155,7 @@ void MDSimulator::velocityVerlet() {
 				nextPos -= length;
 			else if (nextPos < -length / 2)
 				nextPos += length;
-			positionArr[currentTime + 1][i][j] = nextPos;
+			positionArr[currentIteration + 1][i][j] = nextPos;
 		}
 	}
 
@@ -133,23 +163,23 @@ void MDSimulator::velocityVerlet() {
 	std::array<std::array < std::array<double, 3>, SimulationSettings::nParticles>, SimulationSettings::nParticles> allDistances = findDistances();
 	for (int i = 0; i < SimulationSettings::nParticles; i++) {
 		// Start at 0 force in each dimension
-		forceArr[currentTime + 1][i][0] = 0;
-		forceArr[currentTime + 1][i][1] = 0;
-		forceArr[currentTime + 1][i][2] = 0;
+		forceArr[currentIteration + 1][i][0] = 0;
+		forceArr[currentIteration + 1][i][1] = 0;
+		forceArr[currentIteration + 1][i][2] = 0;
 		std::array < std::array<double, 3>, SimulationSettings::nParticles> distanceArr = allDistances[i];
 		for (int j = 0; j < allDistances.size(); j++) {
 			// Find the total distance between each particle
 			double r = sqrt(pow(distanceArr[j][0], 2) + pow(distanceArr[j][1], 2) + pow(distanceArr[j][2], 2));
 			if (r > rcut) {
-				forceArr[currentTime + 1][i][0] += 0;
-				forceArr[currentTime + 1][i][1] += 0;
-				forceArr[currentTime + 1][i][2] += 0;
+				forceArr[currentIteration + 1][i][0] += 0;
+				forceArr[currentIteration + 1][i][1] += 0;
+				forceArr[currentIteration + 1][i][2] += 0;
 			}
 			else {
 				double force = -24 * SimulationSettings::LJEpsilon * (pow(SimulationSettings::LJSigma, 6) / pow(r, 7) - 2 * pow(SimulationSettings::LJSigma, 12) / pow(r, 13));
-				forceArr[currentTime + 1][i][0] += force * distanceArr[j][0];
-				forceArr[currentTime + 1][i][1] += force * distanceArr[j][1]; 
-				forceArr[currentTime + 1][i][2] += force * distanceArr[j][2];
+				forceArr[currentIteration + 1][i][0] += force * distanceArr[j][0];
+				forceArr[currentIteration + 1][i][1] += force * distanceArr[j][1];
+				forceArr[currentIteration + 1][i][2] += force * distanceArr[j][2];
 			}
 		}
 	}
@@ -158,12 +188,12 @@ void MDSimulator::velocityVerlet() {
 	for (int i = 0; i < SimulationSettings::nParticles; i++) {
 		// For each dimension
 		for (int j = 0; j < 3; j++) {
-			velocityArr[currentTime + 1][i][j] = velocityArr[currentTime][i][j] + timeDelta / (2 * mass) * (forceArr[currentTime][i][j] + forceArr[currentTime + 1][i][j]);
+			velocityArr[currentIteration + 1][i][j] = velocityArr[currentIteration][i][j] + timeDelta / (2 * mass) * (forceArr[currentIteration][i][j] + forceArr[currentIteration + 1][i][j]);
 		}
 	}
 }
 
-double MDSimulator::potentialCalculator(double coordinate) {
+const double MDSimulator::potentialCalculator(double coordinate) {
 	double potential;
 	if (coordinate > rcut)
 		potential = 0;
@@ -174,19 +204,20 @@ double MDSimulator::potentialCalculator(double coordinate) {
 	return potential; // ergs
 }
 
-double MDSimulator::kineticCalculator(double velocity) {
-	return 1 / 2 * mass * pow(velocity, 2); // ergs
+const double MDSimulator::kineticCalculator(double velocity) {
+	return 1.0 / 2.0 * mass * pow(velocity, 2); // ergs
 }
 
 double MDSimulator::temperatureCalculator() {
-	const double firstTerm = 2 / (3 * 1.380649E-16 * SimulationSettings::nParticles);
+	//double initVelocity = sqrt(temperature * 3 * 1.380649E-16 * 6.022E39 / mass);
+	const double firstTerm = 2 / (3 * 1.380649E-16 * 6.022E39 * SimulationSettings::nParticles);
 	double sum = 0;
 	for (int i = 0; i < SimulationSettings::nParticles; i++) {
 		for (int j = 0; j < 3; j++) {
-			sum += kineticCalculator(velocityArr[currentTime][i][j]);
+			sum += kineticCalculator(velocityArr[currentIteration][i][j]);
 		}
 	}
-	return sum; // K
+	return firstTerm * sum; // K
 }
 
 std::array<std::array < std::array<double, 3>, SimulationSettings::nParticles>, SimulationSettings::nParticles> MDSimulator::findDistances() {
@@ -194,9 +225,9 @@ std::array<std::array < std::array<double, 3>, SimulationSettings::nParticles>, 
 	std::array<std::array < std::array<double, 3>, SimulationSettings::nParticles>, SimulationSettings::nParticles> allDistances;
 	for (int i = 0; i < SimulationSettings::nParticles; i++) {
 		for (int j = i + 1; j < SimulationSettings::nParticles; j++) {
-			double xDistance = positionArr[currentTime][i][0] - positionArr[currentTime][j][0]; // xi - xj
-			double yDistance = positionArr[currentTime][i][1] - positionArr[currentTime][j][1]; // yi - yj
-			double zDistance = positionArr[currentTime][i][2] - positionArr[currentTime][j][2]; // zi - zj
+			double xDistance = positionArr[currentIteration][i][0] - positionArr[currentIteration][j][0]; // xi - xj
+			double yDistance = positionArr[currentIteration][i][1] - positionArr[currentIteration][j][1]; // yi - yj
+			double zDistance = positionArr[currentIteration][i][2] - positionArr[currentIteration][j][2]; // zi - zj
 
 			// Check periodic boundary conditions for distance calculations
 			if (xDistance < (-length / 2))
@@ -228,10 +259,11 @@ std::array<std::array < std::array<double, 3>, SimulationSettings::nParticles>, 
 
 void MDSimulator::thermostat() {
 	double currentTemp = temperatureCalculator();
-	double correction = 6.022E27 * (currentTemp - temperature);
+	std::cout << currentTemp << ", ";
+	double correction = 1.022E23 * (currentTemp - temperature);
 	for (int i = 0; i < SimulationSettings::nParticles; i++) {
 		for (int j = 0; j < 3; j++) {
-			forceArr[currentTime+1][i][j] -= correction;
+			forceArr[currentIteration][i][j] -= correction;
 		}
 	}
 }

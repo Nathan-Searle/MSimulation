@@ -12,7 +12,7 @@ int main()
 
     //int i = 0;
 
-    MDSimulator dynamicSimulator = MDSimulator(39.948, 10, 85, SimulationSettings::totalIterations * 1E-15); // amu, angstrom, K, 1 femptosecond per iteration
+    MDSimulator dynamicSimulator = MDSimulator(39.948, 10, 85, SimulationSettings::totalIterations * 1E-16); // amu, angstrom, K, 1 femptosecond per iteration
     dynamicSimulator.solve();
 
     //MCSimulator metroSimulator = MCSimulator(39.948, 10, 1000); // amu, angstrom, number (of iterations allowed)
