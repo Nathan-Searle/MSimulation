@@ -18,39 +18,36 @@ MDSimulator::MDSimulator(double particleMass, double lengthOfCube, double temper
 void MDSimulator::solve() {
 	initialize();
 
-	//for (int i = 0; i < SimulationSettings::nParticles; i++)
-	//	std::cout << "[" << positionArr[0][i][0] << "," << positionArr[0][i][1] << "," << positionArr[0][i][2] << "]," << std::endl;
-
 	while (currentTime < SimulationSettings::totalIterations - 1) {
 		velocityVerlet();
 
-		// thermostat();
+		thermostat();
 
 		currentTime++;
 	}
 
 	// Save some results
-	std::ofstream results;
-	results.open("Results.txt");
+	std::ofstream tradjectories;
+	tradjectories.open("trajectories.txt");
 	for (int j = 0; j < SimulationSettings::totalIterations; j++) {
-		results << "[";
+		tradjectories << "[";
 		for (int i = 0; i < SimulationSettings::nParticles; i++) {
-			results << "[" << positionArr[j][i][0] << "," << positionArr[j][i][1] << "," << positionArr[j][i][2] << "]";
+			tradjectories << "[" << positionArr[j][i][0] << "," << positionArr[j][i][1] << "," << positionArr[j][i][2] << "]";
 			if (i <= SimulationSettings::nParticles - 2)
-				results << ",";
+				tradjectories << ",";
 		}
 		if (j < SimulationSettings::totalIterations - 1)
-			results << "],";
+			tradjectories << "],";
 		else
-			results << "]";
+			tradjectories << "]";
 	}
-	results.close();	
+	tradjectories.close();
 }
 
 void MDSimulator::initialize() {
 	double maxDistance = pow((pow(length, 3) / SimulationSettings::nParticles), 1.0 / 3.0);
 	int nIntervals = (int)(length / (maxDistance / 1.1));
-	double initVelocity = sqrt(temperature * 3 * 1.380649E-16 / mass) * 6.022E39/6.022E30; // amu / [time]
+	double initVelocity = sqrt(temperature * 3 * 1.380649E-16 * 6.022E39 / mass); // angstrom / [time]
 	int particleIndex;
 	for (int i = 0; i < nIntervals; i++) {
 		for (int j = 0; j < nIntervals; j++) {
@@ -117,6 +114,12 @@ void MDSimulator::velocityVerlet() {
 			double lastTerm = pow(timeDelta, 2) / 2 * (velocityArr[currentTime][i][j] / mass);
 			double nextPos = currentPos + secondTerm + lastTerm;
 
+			// Break if something has gone horribly wrong
+			if (abs(nextPos) > length) {
+				std::cout << "We done lost a particle." << std::endl;
+				throw(1);
+			}
+
 			// Enforce periodic boundary condition
 			if (nextPos > length / 2)
 				nextPos -= length;
@@ -145,7 +148,7 @@ void MDSimulator::velocityVerlet() {
 			else {
 				double force = -24 * SimulationSettings::LJEpsilon * (pow(SimulationSettings::LJSigma, 6) / pow(r, 7) - 2 * pow(SimulationSettings::LJSigma, 12) / pow(r, 13));
 				forceArr[currentTime + 1][i][0] += force * distanceArr[j][0];
-				forceArr[currentTime + 1][i][1] += force * distanceArr[j][1];
+				forceArr[currentTime + 1][i][1] += force * distanceArr[j][1]; 
 				forceArr[currentTime + 1][i][2] += force * distanceArr[j][2];
 			}
 		}
@@ -224,10 +227,11 @@ std::array<std::array < std::array<double, 3>, SimulationSettings::nParticles>, 
 }
 
 void MDSimulator::thermostat() {
-	double currentTemp = temperatureCalculator(); // Use this value?
+	double currentTemp = temperatureCalculator();
+	double correction = 6.022E27 * (currentTemp - temperature);
 	for (int i = 0; i < SimulationSettings::nParticles; i++) {
 		for (int j = 0; j < 3; j++) {
-			forceArr[currentTime][i][j] += 0; // TODO : Need to add dummy force here to keep temperature good
+			forceArr[currentTime+1][i][j] -= correction;
 		}
 	}
 }
